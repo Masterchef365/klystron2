@@ -10,7 +10,9 @@ const N_FRAMES: usize = 2;
 // and would be subject to change much more often
 
 pub struct Engine {
-    pub command_buffers: Vec<vk::CommandBuffer>,
+    pub swapchain_images: Vec<SwapchainImage>,
+    pub depth_image: Image,
+    pub command_buffers: [vk::CommandBuffer; N_FRAMES],
     pub descriptor_set_layout: vk::DescriptorSetLayout,
     pub descriptor_pool: vk::DescriptorPool,
     pub command_pool: vk::CommandPool,

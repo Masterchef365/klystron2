@@ -1,5 +1,5 @@
 use erupt::{
-    utils::loading::DefaultEntryLoader, vk1_0 as vk, DeviceLoader, EntryLoader, InstanceLoader,
+    utils::loading::DefaultEntryLoader, vk1_0 as vk, DeviceLoader, InstanceLoader,
 };
 use gpu_alloc::GpuAllocator;
 use std::sync::{Arc, Mutex};
