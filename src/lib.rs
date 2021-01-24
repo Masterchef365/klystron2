@@ -2,8 +2,8 @@ use erupt::extensions::{khr_surface, khr_swapchain};
 pub use erupt::vk1_0 as vk;
 mod core;
 pub use crate::core::*;
-mod default_engine;
-mod windowed;
+pub mod default_engine;
+pub mod windowed;
 
 pub const ENGINE_NAME: &str = "Klystron II";
 pub type Memory = gpu_alloc::MemoryBlock<vk::DeviceMemory>;
