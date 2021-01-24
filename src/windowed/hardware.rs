@@ -1,3 +1,4 @@
+use super::COLOR_FORMAT;
 use crate::*;
 use anyhow::{format_err, Result};
 use erupt::{
@@ -5,27 +6,6 @@ use erupt::{
     InstanceLoader,
 };
 use std::{ffi::CStr, os::raw::c_char};
-
-const COLOR_FORMAT: vk::Format = vk::Format::B8G8R8A8_SRGB;
-
-pub struct Windowed {
-    pub swapchain: Option<khr_swapchain::SwapchainKHR>,
-    pub image_available_semaphores: Vec<vk::Semaphore>,
-    pub surface: khr_surface::SurfaceKHR,
-    pub hardware: HardwareSelection,
-    _prelude: SharedCore,
-}
-
-/// Hardware selection for Winit backend
-#[derive(Debug)]
-pub struct HardwareSelection {
-    pub physical_device: vk::PhysicalDevice,
-    pub physical_device_properties: vk::PhysicalDeviceProperties,
-    pub graphics_queue_family: u32,
-    pub utility_queue_family: u32,
-    pub format: khr_surface::SurfaceFormatKHR,
-    pub present_mode: khr_surface::PresentModeKHR,
-}
 
 /// Finds a GRAPHICS queue that the device supports
 pub fn find_surface_queue_family(
