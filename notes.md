@@ -1,0 +1,6 @@
+You could make a wrapper type for .destroy() functions... 
+Eh
+nah
+
+You could have a special wrapper for collections... So that anything drainable would be able to have their inner types destroyed...
+Eh
