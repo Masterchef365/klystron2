@@ -16,7 +16,7 @@ use std::{
 pub mod hardware;
 use winit::window::Window;
 
-const COLOR_FORMAT: vk::Format = vk::Format::B8G8R8A8_SRGB;
+pub const COLOR_FORMAT: vk::Format = vk::Format::B8G8R8A8_SRGB;
 
 pub struct Windowed {
     pub swapchain: Option<khr_swapchain::SwapchainKHR>,
@@ -26,6 +26,7 @@ pub struct Windowed {
     core: SharedCore,
 }
 
+/// Add extensions to `setup` needed to accomodate `window`
 pub fn extensions(setup: &mut VulkanSetup, window: &Window) -> Result<()> {
     setup.instance_extensions.extend(
         surface::enumerate_required_extensions(window)

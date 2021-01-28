@@ -27,7 +27,7 @@ pub struct Engine {
     pub _core: SharedCore,
 }
 
-pub fn default_vk_setup(validation: bool) -> VulkanSetup {
+pub fn vk_setup(validation: bool) -> VulkanSetup {
     const LAYER_KHRONOS_VALIDATION: *const i8 = cstr!("VK_LAYER_KHRONOS_validation");
     use erupt::extensions::ext_debug_utils::EXT_DEBUG_UTILS_EXTENSION_NAME;
     let api_version = vk::make_version(1, 0, 0);
