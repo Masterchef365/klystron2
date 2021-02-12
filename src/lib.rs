@@ -57,8 +57,6 @@ pub struct HardwareSelection {
     pub physical_device_properties: vk::PhysicalDeviceProperties,
     pub graphics_queue_family: u32,
     pub utility_queue_family: u32,
-    pub format: khr_surface::SurfaceFormatKHR,
-    pub present_mode: khr_surface::PresentModeKHR,
 }
 
 /// Set of Vulkan layers, extensions, and version
@@ -78,12 +76,9 @@ pub struct ApplicationInfo {
 
 /// Return the vulkan-ready version of this engine
 pub fn engine_version() -> u32 {
-    let mut s = env!("CARGO_PKG_VERSION")
-        .split('.')
-        .filter_map(|s| s.parse::<u32>().ok());
     vk::make_version(
-        s.next().unwrap_or(1),
-        s.next().unwrap_or(0),
-        s.next().unwrap_or(0),
+        env!("CARGO_PKG_VERSION_MAJOR").parse().unwrap_or(1),
+        env!("CARGO_PKG_VERSION_MINOR").parse().unwrap_or(0),
+        env!("CARGO_PKG_VERSION_PATCH").parse().unwrap_or(0),
     )
 }

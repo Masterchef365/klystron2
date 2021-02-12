@@ -7,6 +7,11 @@ use erupt::{
 };
 use std::{ffi::CStr, os::raw::c_char};
 
+pub struct SurfaceInfo {
+    pub format: khr_surface::SurfaceFormatKHR,
+    pub present_mode: khr_surface::PresentModeKHR,
+}
+
 /// Finds a GRAPHICS queue that the device supports
 pub fn find_surface_queue_family(
     instance: &InstanceLoader,
@@ -96,24 +101,31 @@ pub fn select_present_mode(
 pub fn check_supported_extensions(
     instance: &InstanceLoader,
     physical_device: vk::PhysicalDevice,
-    device_extensions: &[*const c_char],
+    requested_extensions: &[*const c_char],
 ) -> Result<Vec<vk::ExtensionProperties>> {
     let supported_extensions = unsafe {
         instance
             .enumerate_device_extension_properties(physical_device, None, None)
             .result()?
     };
-    let all_supported = device_extensions.iter().all(|device_extension| {
-        let device_extension = unsafe { CStr::from_ptr(*device_extension) };
-
-        supported_extensions.iter().any(|properties| {
+    let mut unsupported_extensions = Vec::new();
+    for request in requested_extensions {
+        let request = unsafe { CStr::from_ptr(*request) };
+        let is_supported = supported_extensions.iter().any(|properties| {
             let extension_name = unsafe { CStr::from_ptr(properties.extension_name.as_ptr()) };
-            extension_name == device_extension
-        })
-    });
-    match all_supported {
-        false => Err(format_err!("Extension ")),
-        true => Ok(supported_extensions),
+            extension_name == request
+        });
+        if !is_supported {
+            unsupported_extensions.push(request);
+        }
+    }
+    if unsupported_extensions.is_empty() {
+        Ok(supported_extensions)
+    } else {
+        Err(format_err!(
+            "Unsupported extensions requested: {:?}",
+            unsupported_extensions
+        ))
     }
 }
 
@@ -121,21 +133,29 @@ pub fn select_hardware_physical_device(
     instance: &InstanceLoader,
     physical_device: vk::PhysicalDevice,
     surface: khr_surface::SurfaceKHR,
-    device_extensions: &[*const c_char],
 ) -> Result<HardwareSelection> {
     Ok(HardwareSelection {
         physical_device,
         graphics_queue_family: find_surface_queue_family(instance, physical_device, surface)?,
         utility_queue_family: find_utility_queue_family(instance, physical_device)?,
-        format: select_surface_format(instance, physical_device, surface)?,
-        present_mode: select_present_mode(instance, physical_device, surface)?,
         physical_device_properties: unsafe {
             instance.get_physical_device_properties(physical_device, None)
         },
     })
 }
 
-pub fn score_hardware_config(hardware: &HardwareSelection) -> u32 {
+pub fn select_surface_info(
+    instance: &InstanceLoader,
+    physical_device: vk::PhysicalDevice,
+    surface: khr_surface::SurfaceKHR,
+) -> Result<SurfaceInfo> {
+    Ok(SurfaceInfo {
+        format: select_surface_format(instance, physical_device, surface)?,
+        present_mode: select_present_mode(instance, physical_device, surface)?,
+    })
+}
+
+pub fn score_hardware_config(hardware: &HardwareSelection) -> i32 {
     match hardware.physical_device_properties.device_type {
         vk::PhysicalDeviceType::DISCRETE_GPU => 2,
         vk::PhysicalDeviceType::INTEGRATED_GPU => 1,
@@ -148,14 +168,19 @@ pub fn query(
     instance: &InstanceLoader,
     surface: khr_surface::SurfaceKHR,
     device_extensions: &[*const c_char],
-) -> Result<HardwareSelection> {
+) -> Result<(HardwareSelection, SurfaceInfo)> {
     unsafe { instance.enumerate_physical_devices(None) }
-        .unwrap()
+        .result()?
         .into_iter()
-        .filter_map(|physical_device| {
-            select_hardware_physical_device(instance, physical_device, surface, device_extensions)
-                .ok()
+        .map(|physical_device| {
+            let hardware = select_hardware_physical_device(instance, physical_device, surface)?;
+            let surface = select_surface_info(instance, physical_device, surface)?;
+            let _ = check_supported_extensions(instance, physical_device, device_extensions)?;
+            Ok((hardware, surface))
         })
-        .max_by_key(score_hardware_config)
-        .ok_or_else(|| anyhow::format_err!("No suitable hardware found for this configuration"))
+        .max_by_key(|res| match res {
+            Ok((hardware, _)) => score_hardware_config(&hardware),
+            Err(_) => std::i32::MIN,
+        })
+        .unwrap_or_else(|| Err(format_err!("No physical devices found")))
 }
