@@ -1,12 +1,13 @@
-use super::COLOR_FORMAT;
+use super::{COLOR_FORMAT, COLOR_SPACE};
 use crate::*;
 use anyhow::{format_err, Result};
 use erupt::{
-    extensions::{khr_surface, khr_swapchain},
+    extensions::khr_surface,
     InstanceLoader,
 };
 use std::{ffi::CStr, os::raw::c_char};
 
+/// Surface info for a given device
 pub struct SurfaceInfo {
     pub format: khr_surface::SurfaceFormatKHR,
     pub present_mode: khr_surface::PresentModeKHR,
@@ -38,7 +39,7 @@ pub fn find_surface_queue_family(
     Err(format_err!("No suitable graphics queue family found"))
 }
 
-/// Finds a COMPUTE queue (also for transfer)
+/// Finds a COMPUTE and TRANSFER queue
 pub fn find_utility_queue_family(
     instance: &InstanceLoader,
     physical_device: vk::PhysicalDevice,
@@ -49,14 +50,14 @@ pub fn find_utility_queue_family(
             .into_iter()
     };
     for (i, properties) in qf_properties.enumerate() {
-        let has_compute = properties.queue_flags.contains(vk::QueueFlags::GRAPHICS);
+        let has_compute = properties.queue_flags.contains(vk::QueueFlags::COMPUTE);
         let has_transfer = properties.queue_flags.contains(vk::QueueFlags::TRANSFER);
 
         if has_compute && has_transfer {
             return Ok(i as u32);
         }
     }
-    Err(format_err!("No suitable graphics queue family found"))
+    Err(format_err!("No suitable utility queue family found"))
 }
 
 /// Find a surface format compatible with COLOR_FORMAT (and SRGB_NONLINEAR_KHR if available)
@@ -71,18 +72,18 @@ pub fn select_surface_format(
             .result()?
     };
     match formats
-        .iter()
-        .find(|surface_format| {
-            surface_format.format == vk::Format::B8G8R8A8_SRGB
-                && surface_format.color_space == khr_surface::ColorSpaceKHR::SRGB_NONLINEAR_KHR
+        .into_iter()
+        .find(|&surface_format| {
+            surface_format.format == COLOR_FORMAT
+                && surface_format.color_space == COLOR_SPACE
         })
-        .or_else(|| formats.get(0))
     {
-        Some(surface_format) => Ok(surface_format.clone()),
+        Some(surface_format) => Ok(surface_format),
         None => return Err(format_err!("No suitable surface format found.")),
     }
 }
 
+/// Select a present mode for this surface
 pub fn select_present_mode(
     instance: &InstanceLoader,
     physical_device: vk::PhysicalDevice,
@@ -98,6 +99,7 @@ pub fn select_present_mode(
     }
 }
 
+/// Check that the given physical_device supports all of requested_extensions
 pub fn check_supported_extensions(
     instance: &InstanceLoader,
     physical_device: vk::PhysicalDevice,
@@ -129,6 +131,7 @@ pub fn check_supported_extensions(
     }
 }
 
+/// Select hardware given a physical device
 pub fn select_hardware_physical_device(
     instance: &InstanceLoader,
     physical_device: vk::PhysicalDevice,
@@ -144,6 +147,7 @@ pub fn select_hardware_physical_device(
     })
 }
 
+/// Find a valid SurfaceInfo for this surface
 pub fn select_surface_info(
     instance: &InstanceLoader,
     physical_device: vk::PhysicalDevice,
@@ -155,6 +159,7 @@ pub fn select_surface_info(
     })
 }
 
+/// Score hardware based on device type
 pub fn score_hardware_config(hardware: &HardwareSelection) -> i32 {
     match hardware.physical_device_properties.device_type {
         vk::PhysicalDeviceType::DISCRETE_GPU => 2,

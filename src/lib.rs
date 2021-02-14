@@ -6,7 +6,6 @@ pub mod default_engine;
 pub mod windowed;
 
 pub const ENGINE_NAME: &str = "Klystron II";
-pub type Memory = gpu_alloc::MemoryBlock<vk::DeviceMemory>;
 
 /// Data associated with CPU-GPU and GPU-GPU synchronization.
 /// These synchronization primitives are signalled when a frame finishes.
@@ -68,17 +67,50 @@ pub struct VulkanSetup {
     pub api_version: u32,
 }
 
+impl VulkanSetup {
+    pub fn validation(api_version: u32) -> Self {
+        const LAYER_KHRONOS_VALIDATION: *const i8 = erupt::cstr!("VK_LAYER_KHRONOS_validation");
+        use erupt::extensions::ext_debug_utils::EXT_DEBUG_UTILS_EXTENSION_NAME;
+        VulkanSetup {
+            instance_layers: vec![LAYER_KHRONOS_VALIDATION],
+            instance_extensions: vec![EXT_DEBUG_UTILS_EXTENSION_NAME],
+            device_layers: vec![LAYER_KHRONOS_VALIDATION],
+            device_extensions: vec![],
+            api_version,
+        }
+    }
+}
+
+impl Default for VulkanSetup {
+    /// Defaults to Vulkan 1.0.0
+    fn default() -> Self {
+        Self {
+            instance_layers: Vec::new(),
+            instance_extensions: Vec::new(),
+            device_layers: Vec::new(),
+            device_extensions: Vec::new(),
+            api_version: vk::make_version(1, 0, 0),
+        }
+    }
+}
+
 /// Application info to be passed to instance creation
 pub struct ApplicationInfo {
     pub name: String,
     pub version: u32,
 }
 
+macro_rules! cargo_vk_version {
+    () => {
+        vk::make_version(
+            env!("CARGO_PKG_VERSION_MAJOR").parse().unwrap_or(1),
+            env!("CARGO_PKG_VERSION_MINOR").parse().unwrap_or(0),
+            env!("CARGO_PKG_VERSION_PATCH").parse().unwrap_or(0),
+        )
+    };
+}
+
 /// Return the vulkan-ready version of this engine
 pub fn engine_version() -> u32 {
-    vk::make_version(
-        env!("CARGO_PKG_VERSION_MAJOR").parse().unwrap_or(1),
-        env!("CARGO_PKG_VERSION_MINOR").parse().unwrap_or(0),
-        env!("CARGO_PKG_VERSION_PATCH").parse().unwrap_or(0),
-    )
+    cargo_vk_version!()
 }

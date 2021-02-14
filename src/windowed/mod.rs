@@ -2,7 +2,7 @@ use crate::*;
 use anyhow::{format_err, Result};
 use erupt::{
     extensions::{
-        khr_surface::{self, SurfaceKHR},
+        khr_surface::{self, SurfaceKHR, ColorSpaceKHR},
         khr_swapchain,
     },
     utils::surface,
@@ -14,17 +14,11 @@ use std::{
     os::raw::c_char,
 };
 pub mod hardware;
+use hardware::SurfaceInfo;
 use winit::window::Window;
 
 pub const COLOR_FORMAT: vk::Format = vk::Format::B8G8R8A8_SRGB;
-
-pub struct Windowed {
-    pub swapchain: Option<khr_swapchain::SwapchainKHR>,
-    /// Signalled when the swapchain is finished using a given image
-    pub image_available_semaphores: Vec<vk::Semaphore>,
-    pub surface: khr_surface::SurfaceKHR,
-    core: SharedCore,
-}
+pub const COLOR_SPACE: ColorSpaceKHR = ColorSpaceKHR::SRGB_NONLINEAR_KHR;
 
 /// Add extensions to `setup` needed to accomodate `window`
 pub fn extensions(setup: &mut VulkanSetup, window: &Window) -> Result<()> {
@@ -39,12 +33,21 @@ pub fn extensions(setup: &mut VulkanSetup, window: &Window) -> Result<()> {
     Ok(())
 }
 
+/// Select an appropriate image count
+pub fn image_count(surface_caps: khr_surface::SurfaceCapabilitiesKHR) -> u32 {
+    let mut image_count = surface_caps.min_image_count + 1;
+    if surface_caps.max_image_count > 0 && image_count > surface_caps.max_image_count {
+        image_count = surface_caps.max_image_count;
+    }
+    image_count
+}
+
 /// Find appropriate hardware, and create a core
 pub fn basics(
     app_info: &ApplicationInfo,
     setup: &mut VulkanSetup,
     window: &Window,
-) -> Result<(SurfaceKHR, HardwareSelection, SharedCore)> {
+) -> Result<(SurfaceKHR, HardwareSelection, SurfaceInfo, SharedCore)> {
     // Entry
     let entry = EntryLoader::new()?;
 
@@ -112,5 +115,5 @@ pub fn basics(
         _entry: entry,
     });
 
-    Ok((surface, hardware, core))
+    Ok((surface, hardware, surface_info, core))
 }
