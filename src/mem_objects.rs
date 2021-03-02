@@ -61,3 +61,41 @@ impl MemObject<vk::Image> {
         }
     }
 }
+
+impl MemObject<vk::Buffer> {
+    /// Allocate a new buffer with the given usage. Note that for the view builder, `buffer` does not
+    /// need to be specified as this method will handle adding it.
+    pub fn new(
+        core: &Core,
+        create_info: vk::BufferCreateInfoBuilder<'static>,
+        view_create_info: vk::BufferViewCreateInfoBuilder<'static>,
+        usage: gpu_alloc::UsageFlags,
+    ) -> Result<Self> {
+        let instance = unsafe { core.device.create_buffer(&create_info, None, None) }.result()?;
+        let memory = core.allocate(crate::memory::buffer_memory_req(&core, instance, usage))?;
+        unsafe {
+            core.device
+                .bind_buffer_memory(instance, *memory.memory(), memory.offset())
+                .result()?;
+        }
+        let view_create_info = view_create_info.buffer(instance);
+        let view =
+            unsafe { core.device.create_buffer_view(&view_create_info, None, None) }.result()?;
+        Ok(Self {
+            instance,
+            memory: Some(memory),
+            view,
+            bomb: DropBomb::new("Buffer memory object dropped without calling free()!"),
+        })
+    }
+
+    pub fn free(&mut self, core: &Core) {
+        unsafe {
+            core.device.destroy_buffer(Some(self.instance), None);
+            core.device.destroy_buffer_view(Some(self.view), None);
+            core.deallocate(self.memory.take().expect("Double free of buffer memory"))
+                .unwrap();
+            self.bomb.defuse();
+        }
+    }
+}
