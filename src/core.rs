@@ -1,7 +1,8 @@
 use anyhow::{format_err, Result};
 use erupt::{utils::loading::DefaultEntryLoader, vk1_0 as vk, DeviceLoader, InstanceLoader};
-use gpu_alloc::GpuAllocator;
-use gpu_alloc_erupt::EruptMemoryDevice;
+use gpu_alloc::{GpuAllocator, Request};
+use gpu_alloc_erupt::EruptMemoryDevice as EMD;
+
 use std::sync::MutexGuard;
 use std::sync::{Arc, Mutex};
 
@@ -24,11 +25,19 @@ impl Core {
             .map_err(|_| format_err!("GpuAllocator mutex poisoned"))
     }
 
-    pub fn allocate(&self, request: gpu_alloc::Request) -> Result<Memory> {
+    pub fn allocate(&self, request: Request) -> Result<Memory> {
         unsafe {
             Ok(self
                 .allocator()?
-                .alloc(EruptMemoryDevice::wrap(&self.device), request)?)
+                .alloc(EMD::wrap(&self.device), request)?)
+        }
+    }
+
+    pub fn deallocate(&self, memory: Memory) -> Result<()> {
+        unsafe {
+            Ok(self
+                .allocator()?
+                .dealloc(EMD::wrap(&self.device), memory))
         }
     }
 }
