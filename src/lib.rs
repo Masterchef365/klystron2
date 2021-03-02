@@ -4,6 +4,8 @@ mod core;
 pub use crate::core::*;
 pub mod default_engine;
 pub mod windowed;
+pub mod mem_objects;
+pub mod memory;
 
 pub const ENGINE_NAME: &str = "Klystron II";
 
