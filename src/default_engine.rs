@@ -6,10 +6,6 @@ use erupt::cstr;
 /// Number of frames in-flight. >1 means the GPU and CPU work in parallel
 const N_FRAMES: usize = 2;
 
-// Thinking about doing another layer of encapsulation... Must resist
-// My thought was that the concept of a mesh bundle is higher-level than the rest of the renderer
-// and would be subject to change much more often
-
 pub struct Engine {
     pub swapchain_images: Vec<SwapchainImage>,
     pub depth_image: Image,
