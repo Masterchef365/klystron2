@@ -1,4 +1,3 @@
-use erupt::extensions::{khr_surface, khr_swapchain};
 pub use erupt::vk1_0 as vk;
 mod core;
 pub use crate::core::*;

@@ -1,5 +1,5 @@
 use crate::*;
-use anyhow::{format_err, Result};
+use anyhow::Result;
 use erupt::{
     extensions::{
         khr_surface::{self, SurfaceKHR, ColorSpaceKHR},
@@ -9,10 +9,7 @@ use erupt::{
     DeviceLoader, EntryLoader, InstanceLoader,
 };
 use std::sync::Mutex;
-use std::{
-    ffi::{CStr, CString},
-    os::raw::c_char,
-};
+use std::ffi::CString;
 pub mod hardware;
 use hardware::SurfaceInfo;
 use winit::window::Window;
